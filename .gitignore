@@ -1,0 +1,58 @@
+# Dependencies
+node_modules/
+
+# Build outputs
+/**/dist/
+/**/out/
+/**/cache/
+/**/coverage/
+/**/lcov.info
+*.tsbuildinfo
+
+# Foundry dependencies and runtime artifacts
+contracts/lib/
+/**/broadcast/
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Temporary files
+.tmp/
+tmp/
+*.tmp
+
+# Local notes / private scratch files
+ImportantInfo
+
+# Real environment / secret files. Keep examples committed.
+.env
+.env.*
+!.env.example
+!.env.*.example
+
+backend/.env
+backend/.env.*
+!backend/.env.example
+!backend/.env.*.example
+
+frontend/.env
+frontend/.env.*
+!frontend/.env.example
+!frontend/.env.*.example
+
+contracts/.env
+contracts/.env.*
+!contracts/.env.example
+!contracts/.env.*.example
