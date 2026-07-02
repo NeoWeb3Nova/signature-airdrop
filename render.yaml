@@ -1,0 +1,27 @@
+services:
+  - type: web
+    name: signature-airdrop-backend
+    runtime: node
+    plan: free
+    rootDir: backend
+    region: oregon
+    buildCommand: npm ci && npm run build
+    startCommand: npm run start
+    healthCheckPath: /api/health
+    envVars:
+      - key: NODE_VERSION
+        value: 22
+      - key: PORT
+        value: 4000
+      - key: CHAIN_ID
+        value: 84532
+      - key: RPC_URL
+        value: https://sepolia.base.org
+      - key: WHITELIST_PATH
+        value: ./whitelist.json
+      - key: CORS_ORIGIN
+        value: https://frontend-coral-eta-75.vercel.app,https://frontend-q4v30eptk-neos-projects-6cf57eed.vercel.app
+      - key: AIRDROP_CONTRACT_ADDRESS
+        sync: false
+      - key: SIGNER_PRIVATE_KEY
+        sync: false
