@@ -3,7 +3,12 @@ import { useWaitForTransactionReceipt, useWriteContract } from 'wagmi';
 import { AIRDROP_ABI } from '../abi/airdrop';
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:4000/api';
-export const AIRDROP_ADDRESS = (import.meta.env.VITE_AIRDROP_CONTRACT_ADDRESS || '0x0000000000000000000000000000000000000000') as `0x${string}`;
+const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000';
+export const AIRDROP_ADDRESS = (import.meta.env.VITE_AIRDROP_CONTRACT_ADDRESS || ZERO_ADDRESS) as `0x${string}`;
+
+function isValidContractAddress(address: string | undefined): address is `0x${string}` {
+  return Boolean(address && /^0x[a-fA-F0-9]{40}$/.test(address) && address.toLowerCase() !== ZERO_ADDRESS);
+}
 
 export type Eligibility = {
   eligible: boolean;
@@ -44,8 +49,12 @@ export function useAirdrop() {
       const json = await res.json();
       if (!res.ok) throw new Error(json.message || 'Signature request failed');
       const signed = json as SignResponse;
+      const contractAddress = isValidContractAddress(signed.contractAddress) ? signed.contractAddress : AIRDROP_ADDRESS;
+      if (!isValidContractAddress(contractAddress)) {
+        throw new Error('Airdrop contract address is not configured. Set VITE_AIRDROP_CONTRACT_ADDRESS to the deployed SignatureAirdrop address.');
+      }
       writeContract({
-        address: AIRDROP_ADDRESS,
+        address: contractAddress,
         abi: AIRDROP_ABI,
         functionName: 'claim',
         args: [BigInt(signed.round), BigInt(signed.amountOrTokenId || '0'), BigInt(signed.nonce || 0), signed.signature],

@@ -134,6 +134,10 @@ Default local URLs:
 - Frontend: http://localhost:5173
 - Backend: http://localhost:4000/api
 
+If Vite starts on another local port such as `5174`, the backend accepts that
+local dev origin automatically. Add non-local browser origins to `CORS_ORIGIN`
+as a comma-separated list.
+
 ## Verified locally
 
 - `contracts`: `forge test -vv` passes 7/7 airdrop tests.

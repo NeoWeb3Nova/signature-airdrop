@@ -39,6 +39,7 @@ export class SignService {
   }
 
   async sign(address: string, round: number) {
+    this.assertContractConfigured();
     const normalized = ethers.getAddress(address);
     const entry = this.whitelist.getEntry(normalized, round);
     if (!entry) throw new BadRequestException({ eligible: false, message: 'Address is not eligible for this round' });
@@ -61,6 +62,12 @@ export class SignService {
     } catch (error) {
       console.warn('Claim status check failed, returning false:', error instanceof Error ? error.message : error);
       return false;
+    }
+  }
+
+  private assertContractConfigured() {
+    if (this.contractAddress === ethers.ZeroAddress) {
+      throw new BadRequestException({ message: 'AIRDROP_CONTRACT_ADDRESS is not configured on the backend' });
     }
   }
 }

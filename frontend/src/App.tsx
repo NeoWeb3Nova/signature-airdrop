@@ -1,12 +1,23 @@
 import { Header } from './components/Header';
 import { ClaimPanel } from './components/ClaimPanel';
+import { LanguageProvider, useLanguage } from './i18n';
 
 export function App() {
+  return (
+    <LanguageProvider>
+      <LocalizedApp />
+    </LanguageProvider>
+  );
+}
+
+function LocalizedApp() {
+  const { t } = useLanguage();
+
   return (
     <main>
       <Header />
       <ClaimPanel />
-      <footer>Built for Base Sepolia · Foundry contracts · Nest.js signer · Vite React frontend</footer>
+      <footer>{t('footer')}</footer>
     </main>
   );
 }
