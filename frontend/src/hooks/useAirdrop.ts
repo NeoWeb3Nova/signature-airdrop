@@ -26,6 +26,7 @@ export function useAirdrop() {
   const [round, setRound] = useState(2);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [joined, setJoined] = useState(false);
   const { writeContract, data: hash, isPending } = useWriteContract();
   const receipt = useWaitForTransactionReceipt({ hash });
 
@@ -65,5 +66,25 @@ export function useAirdrop() {
     } finally { setLoading(false); }
   }, [round, writeContract]);
 
-  return { round, setRound, eligibility, checkEligibility, claim, error, loading, hash, isPending, receipt };
+  const joinWhitelist = useCallback(async (address: string, requestedRound = round) => {
+    setLoading(true); setError(null); setJoined(false);
+    try {
+      const res = await fetch(`${API_BASE}/whitelist/join`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ address, round: requestedRound }),
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.message || 'Join whitelist failed');
+      setJoined(true);
+      // Re-check eligibility after joining
+      await checkEligibility(address, requestedRound);
+      return json;
+    } catch (e) {
+      const message = e instanceof Error ? e.message : 'Join whitelist failed';
+      setError(message); throw e;
+    } finally { setLoading(false); }
+  }, [round, checkEligibility]);
+
+  return { round, setRound, eligibility, checkEligibility, claim, joinWhitelist, joined, error, loading, hash, isPending, receipt };
 }

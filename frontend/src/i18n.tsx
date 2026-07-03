@@ -2,7 +2,7 @@ import { ReactNode, createContext, useContext, useEffect, useMemo, useState } fr
 
 export type Language = 'en' | 'zh';
 
-type TranslationKey = keyof typeof translations.en;
+export type TranslationKey = keyof typeof translations.en & keyof typeof translations.zh;
 
 type LanguageContextValue = {
   language: Language;
@@ -35,6 +35,8 @@ const translations = {
     queryEligibility: 'Query eligibility',
     walletPending: 'Wallet pending...',
     requestClaim: 'Request signature & claim',
+    joinWhitelist: 'Join whitelist to participate',
+    joinedWhitelist: 'Joined! Re-query eligibility',
     wallet: 'Wallet',
     network: 'Network',
     eligibility: 'Eligibility',
@@ -74,6 +76,8 @@ const translations = {
     queryEligibility: '查询资格',
     walletPending: '钱包确认中...',
     requestClaim: '请求签名并领取',
+    joinWhitelist: '加入白名单参与空投',
+    joinedWhitelist: '已加入！请重新查询资格',
     wallet: '钱包',
     network: '网络',
     eligibility: '领取资格',

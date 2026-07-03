@@ -5,7 +5,7 @@ import { useLanguage } from '../i18n';
 
 export function ClaimPanel() {
   const { address, isConnected, chain } = useAccount();
-  const { round, setRound, eligibility, checkEligibility, claim, error, loading, hash, isPending, receipt } = useAirdrop();
+  const { round, setRound, eligibility, checkEligibility, claim, joinWhitelist, joined, error, loading, hash, isPending, receipt } = useAirdrop();
   const { t } = useLanguage();
 
   const amountLabel = eligibility?.tokenType === 'ERC20' && eligibility.amountOrTokenId
@@ -32,6 +32,11 @@ export function ClaimPanel() {
         <button className="primary" disabled={!isConnected || !eligibility?.eligible || eligibility.claimed || loading || isPending} onClick={() => address && claim(address)}>
           {isPending ? t('walletPending') : t('requestClaim')}
         </button>
+        {eligibility && !eligibility.eligible && !eligibility.claimed && (
+          <button className="secondary" disabled={!isConnected || loading || joined} onClick={() => address && joinWhitelist(address)}>
+            {joined ? t('joinedWhitelist') : t('joinWhitelist')}
+          </button>
+        )}
       </div>
 
       <div className="status-grid">

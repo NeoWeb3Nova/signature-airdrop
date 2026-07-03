@@ -116,8 +116,23 @@ API:
 - `GET /api/health`
 - `GET /api/eligibility?address=0x...&round=2`
 - `POST /api/sign` with `{ "address": "0x...", "round": 2 }`
+- `GET /api/whitelist` — list all entries (optional `?round=2`)
+- `GET /api/whitelist/:address` — get entries for a specific address (optional `?round=2`)
+- `POST /api/whitelist` — add address to whitelist (admin, supports `round`, `amountOrTokenId`, `tokenType`)
+- `POST /api/whitelist/join` — user self-join whitelist (same body as above, no auth needed for demo)
+- `DELETE /api/whitelist` — remove address from whitelist (supports `round`)
 
 The whitelist currently contains 5 Anvil-style demo addresses for round 1 ERC-20 and round 2 ERC-721.
+
+### Whitelist management
+
+The backend whitelist is a JSON file that gets loaded at startup and persisted on every change. By default it reads `backend/whitelist.json`.
+
+- **Query eligibility** (`GET /api/eligibility`) — returns `eligible: false` if the address is not in the whitelist.
+- **Self-join** (`POST /api/whitelist/join`) — any user can add their own address to the whitelist for the selected round. Default amount for round 1 is `100000000000000000000` (100 NDT), for round 2 is `1` (one NFT). After joining, the user must re-query eligibility to see the updated status.
+- **Admin add** (`POST /api/whitelist`) — same as join but intended for admin/owner use.
+- **Remove** (`DELETE /api/whitelist`) — removes an address from the whitelist for a given round.
+- **List** (`GET /api/whitelist`) — lists all entries.
 
 ## Frontend
 
