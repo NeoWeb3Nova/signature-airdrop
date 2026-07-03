@@ -27,7 +27,11 @@ export class WhitelistService {
   }
 
   getEntry(address: string, round: number): WhitelistEntry | undefined {
-    return this.entries.get(`${ethers.getAddress(address).toLowerCase()}:${round}`);
+    try {
+      return this.entries.get(`${ethers.getAddress(address.toLowerCase()).toLowerCase()}:${round}`);
+    } catch {
+      return undefined;
+    }
   }
 
   getAllEntries(round?: number): WhitelistEntry[] {
@@ -36,7 +40,7 @@ export class WhitelistService {
   }
 
   addEntry(address: string, round: number, amountOrTokenId: string, tokenTypeName: 'ERC20' | 'ERC721' = 'ERC20'): WhitelistEntry {
-    const normalized = ethers.getAddress(address);
+    const normalized = ethers.getAddress(address.toLowerCase());
     const key = `${normalized.toLowerCase()}:${round}`;
     if (this.entries.has(key)) {
       const existing = this.entries.get(key)!;
@@ -66,7 +70,7 @@ export class WhitelistService {
   }
 
   removeEntry(address: string, round: number): boolean {
-    const normalized = ethers.getAddress(address);
+    const normalized = ethers.getAddress(address.toLowerCase());
     const key = `${normalized.toLowerCase()}:${round}`;
     const removed = this.entries.delete(key);
     if (removed) this.save();
