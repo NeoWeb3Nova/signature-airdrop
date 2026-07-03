@@ -1,28 +1,27 @@
 # Signature Airdrop Development and Deployment Guide
 
-> This is the English mirror of `guild.md`. It documents the real repository structure, configuration files, scripts, deployment flow, and verification steps for reproducing the Signature Airdrop project from development to production.
+> English mirror of [`guild.md`](./guild.md). The frontend renders this file on `/#guide` when the app language is English.
 
 ## 1. Project overview
 
-Signature Airdrop is an ECDSA signature-gated airdrop demo deployed on Base Sepolia. It contains three layers:
+Signature Airdrop is an ECDSA signature-gated airdrop demo on Base Sepolia. It now includes smart contracts, a Nest.js signing API, a Vite React claim UI, whitelist self-join for demos, and an in-app bilingual development guide.
 
 | Module | Path | Stack | Responsibility |
 | --- | --- | --- | --- |
-| Smart contracts | `contracts/` | Foundry, Solidity 0.8.24, OpenZeppelin | Manage airdrop rounds, verify backend signatures, distribute ERC20 or ERC721 rewards |
-| Backend service | `backend/` | Nest.js, TypeScript, ethers v6 | Read the whitelist, check eligibility, generate claim signatures |
-| Frontend app | `frontend/` | Vite, React 19, TypeScript, wagmi, RainbowKit | Connect wallets, query eligibility, request signatures, submit on-chain claims |
+| Smart contracts | `contracts/` | Foundry, Solidity 0.8.24, OpenZeppelin | Configure airdrop rounds, verify signatures, distribute ERC20 or ERC721 rewards |
+| Backend API | `backend/` | Nest.js 11, TypeScript, ethers v6 | Load/persist whitelist, check eligibility and claimed state, generate claim signatures |
+| Frontend app | `frontend/` | Vite 7, React 19, wagmi 2, RainbowKit 2 | Wallet connection, round selection, self-join whitelist, claim transaction |
+| Deployment | `render.yaml`, `vercel.json` | Render, Vercel | Backend blueprint and frontend monorepo build config |
 
 Core flow:
 
-1. The contract owner deploys `SignatureAirdrop`, a test ERC20 token, and a test ERC721 token.
-2. The deployment script configures two rounds:
-   - Round 1: ERC20 reward.
-   - Round 2: ERC721 reward.
-3. The backend reads `backend/whitelist.json` and checks whether an address is eligible for a round.
-4. The frontend calls `/api/eligibility` after the user connects a wallet.
-5. The frontend calls `/api/sign` before claiming.
-6. The frontend sends `round`, `amountOrTokenId`, `nonce`, and `signature` to the contract `claim()` function.
-7. The contract recovers the signer, confirms it matches the configured backend signer, then transfers ERC20 or mints ERC721.
+1. Deploy `SignatureAirdrop`, demo ERC20 token, and demo ERC721 NFT.
+2. Configure Round 1 as ERC20 and Round 2 as ERC721.
+3. Backend reads `backend/whitelist.json` and normalizes wallet addresses.
+4. Frontend queries `/api/eligibility` after wallet connection.
+5. Ineligible demo users can call `/api/whitelist/join` from the UI.
+6. Eligible users call `/api/sign` and submit `claim(round, amountOrTokenId, nonce, signature)` on-chain.
+7. Contract verifies the ECDSA signer and records `claimed[round][tokenType][user]`.
 
 ## 2. Repository structure
 
@@ -33,17 +32,15 @@ signature-airdrop/
 ├── guild.en.md
 ├── .env.example
 ├── render.yaml
+├── vercel.json
 ├── contracts/
 │   ├── foundry.toml
 │   ├── .env.example
-│   ├── src/
-│   │   ├── Airdrop.sol
-│   │   ├── AirdropToken.sol
-│   │   └── AirdropNFT.sol
-│   ├── script/
-│   │   └── Deploy.s.sol
-│   └── test/
-│       └── Airdrop.t.sol
+│   ├── src/Airdrop.sol
+│   ├── src/AirdropToken.sol
+│   ├── src/AirdropNFT.sol
+│   ├── script/Deploy.s.sol
+│   └── test/Airdrop.t.sol
 ├── backend/
 │   ├── package.json
 │   ├── .env.example
@@ -51,45 +48,32 @@ signature-airdrop/
 │   └── src/
 │       ├── main.ts
 │       ├── sign/
-│       │   ├── sign.controller.ts
-│       │   └── sign.service.ts
 │       └── whitelist/
-│           └── whitelist.service.ts
 └── frontend/
     ├── package.json
     ├── .env.example
     ├── .env.local.example
-    ├── vite.config.ts
-    └── src/
-        ├── main.tsx
-        ├── App.tsx
-        ├── components/
-        │   ├── Header.tsx
-        │   ├── ClaimPanel.tsx
-        │   └── DevelopmentGuide.tsx
-        ├── config/
-        │   └── Web3Provider.tsx
-        ├── hooks/
-        │   └── useAirdrop.ts
-        └── abi/
-            └── airdrop.ts
+    ├── src/App.tsx
+    ├── src/components/ClaimPanel.tsx
+    ├── src/components/DevelopmentGuide.tsx
+    ├── src/config/Web3Provider.tsx
+    ├── src/hooks/useAirdrop.ts
+    └── src/i18n.tsx
 ```
 
 ## 3. Prerequisites
 
-### 3.1 Required tools
-
 | Tool | Purpose | Check command |
 | --- | --- | --- |
-| Node.js 22 | Run the Nest.js backend and Vite frontend | `node -v` |
-| npm | Install JavaScript and TypeScript dependencies | `npm -v` |
-| Foundry | Compile, test, and deploy Solidity contracts | `forge --version`, `cast --version` |
+| Node.js 22 | Backend and frontend runtime/builds | `node -v` |
+| npm | Dependency installation | `npm -v` |
+| Foundry | Solidity build/test/deploy | `forge --version`, `cast --version` |
 | Git | Version control | `git --version` |
-| Base Sepolia ETH | Pay deployment and claim gas | Check wallet or block explorer balance |
+| Base Sepolia ETH | Deployment and claim gas | Wallet or block explorer |
 | Etherscan API V2 key | Optional contract verification | https://etherscan.io/myapikey |
-| WalletConnect Project ID | Optional RainbowKit wallet connection | https://cloud.walletconnect.com/ |
+| WalletConnect Project ID | Production RainbowKit wallet connection | https://cloud.walletconnect.com/ |
 
-### 3.2 Install Foundry
+Install Foundry if needed:
 
 ```bash
 curl -L https://foundry.paradigm.xyz | bash
@@ -97,16 +81,9 @@ foundryup
 forge --version
 ```
 
-### 3.3 Clone and enter the repository
+## 4. Signature security model
 
-```bash
-git clone <your-repo-url> signature-airdrop
-cd signature-airdrop
-```
-
-## 4. Step 1: Understand the signature security model
-
-The backend and contract must sign and verify the same message. The current message hash is:
+The backend and contract use the same hash:
 
 ```solidity
 keccak256(abi.encodePacked(
@@ -121,418 +98,412 @@ keccak256(abi.encodePacked(
 
 | Field | Purpose |
 | --- | --- |
-| `recipient` | Binds the signature to the claimant address |
-| `round` | Prevents cross-round signature reuse |
-| `amountOrTokenId` | ERC20 amount or ERC721 reward identifier/placeholder |
-| `nonce` | Adds per-entry uniqueness |
+| `recipient` | Binds the signature to one wallet |
+| `round` | Prevents cross-round replay |
+| `amountOrTokenId` | Binds the ERC20 amount or ERC721 claim payload |
+| `nonce` | Provides per-entry uniqueness |
 | `address(this)` | Prevents cross-contract replay |
 | `block.chainid` | Prevents cross-chain replay |
 
-The signer key lives in the backend environment. Never expose `SIGNER_PRIVATE_KEY` to the frontend or commit it to Git.
+The backend signer private key lives only in backend/server-side environments. It must never be exposed through frontend `VITE_` variables.
 
-## 5. Step 2: Develop and test the smart contracts
+## 5. Environment variables
 
-### 5.1 Install contract dependencies
+Copy examples before local development:
+
+```bash
+cp contracts/.env.example contracts/.env
+cp backend/.env.example backend/.env
+cp frontend/.env.local.example frontend/.env.local
+```
+
+### 5.1 Contracts
+
+| Variable | Required | Description |
+| --- | --- | --- |
+| `BASE_SEPOLIA_RPC_URL` | Yes | Base Sepolia RPC endpoint |
+| `PRIVATE_KEY` | Yes | Deployer key; pays gas and becomes contract owner |
+| `SIGNER_ADDRESS` | Yes | Public address derived from the backend signer key |
+| `BASESCAN_API_KEY` | No | Etherscan API V2 key for verification |
+| `VERIFIER_URL` | No | `https://api.etherscan.io/v2/api?chainid=84532` |
+
+### 5.2 Backend
+
+| Variable | Required | Description |
+| --- | --- | --- |
+| `PORT` | Yes | Default `4000` |
+| `CHAIN_ID` | Yes | Base Sepolia is `84532` |
+| `RPC_URL` | Yes | RPC used to read `claimed` state |
+| `AIRDROP_CONTRACT_ADDRESS` | Yes | Deployed `SignatureAirdrop` address |
+| `SIGNER_PRIVATE_KEY` | Yes | Backend signing key; public address must match contract `signer()` |
+| `WHITELIST_PATH` | Yes | Default `./whitelist.json` from the backend working directory |
+| `CORS_ORIGIN` | Yes | Extra allowed browser origins; comma-separated |
+
+Local `localhost` and `127.0.0.1` origins on any port are accepted automatically by `backend/src/main.ts`.
+
+### 5.3 Frontend
+
+| Variable | Required | Description |
+| --- | --- | --- |
+| `VITE_API_BASE_URL` | Yes | Backend API base URL, e.g. `http://localhost:4000/api` |
+| `VITE_AIRDROP_CONTRACT_ADDRESS` | Yes | Deployed airdrop contract address |
+| `VITE_WALLETCONNECT_PROJECT_ID` | Recommended | WalletConnect/RainbowKit project ID |
+
+## 6. Smart contract workflow
+
+Install dependencies after cloning because `contracts/lib/` is ignored:
 
 ```bash
 cd contracts
-forge install OpenZeppelin/openzeppelin-contracts
-forge build
+forge install foundry-rs/forge-std --no-git
+forge install OpenZeppelin/openzeppelin-contracts --no-git
 ```
 
-### 5.2 Contract responsibilities
-
-| File | Responsibility |
-| --- | --- |
-| `src/Airdrop.sol` | Main airdrop contract, round management, signature verification, claim state |
-| `src/AirdropToken.sol` | Test ERC20 reward token |
-| `src/AirdropNFT.sol` | Test ERC721 reward NFT |
-| `script/Deploy.s.sol` | Deploy and configure contracts |
-| `test/Airdrop.t.sol` | Foundry tests for claim and failure paths |
-
-### 5.3 Main contract interfaces
-
-Typical interfaces to inspect before integration:
-
-```solidity
-function claim(uint256 round, uint256 amountOrTokenId, uint256 nonce, bytes calldata signature) external;
-function hasClaimed(uint256 round, address user) external view returns (bool);
-function setSigner(address signer) external;
-function setRound(uint256 round, RoundConfig calldata config) external;
-function pause() external;
-function unpause() external;
-```
-
-### 5.4 Run local contract tests
+Run tests:
 
 ```bash
 cd contracts
-forge test -vvv
+forge test -vv
 ```
 
-## 6. Step 3: Prepare environment variables
-
-### 6.1 Contract environment variables
-
-Create `contracts/.env` from `contracts/.env.example` and configure:
-
-```bash
-PRIVATE_KEY=<deployer-private-key>
-RPC_URL=<base-sepolia-rpc-url>
-ETHERSCAN_API_KEY=<etherscan-api-key>
-SIGNER_ADDRESS=<backend-signer-address>
-```
-
-### 6.2 Backend environment variables
-
-Create `backend/.env` from `backend/.env.example` and configure:
-
-```bash
-PORT=3001
-CHAIN_ID=84532
-RPC_URL=<base-sepolia-rpc-url>
-AIRDROP_CONTRACT_ADDRESS=<deployed-airdrop-contract>
-SIGNER_PRIVATE_KEY=<backend-signer-private-key>
-CORS_ORIGIN=http://localhost:5173,https://frontend-coral-eta-75.vercel.app
-```
-
-### 6.3 Frontend environment variables
-
-Create `frontend/.env.local` from `frontend/.env.local.example` and configure:
-
-```bash
-VITE_CHAIN_ID=84532
-VITE_AIRDROP_CONTRACT_ADDRESS=<deployed-airdrop-contract>
-VITE_API_BASE_URL=http://localhost:3001
-VITE_WALLETCONNECT_PROJECT_ID=<walletconnect-project-id>
-```
-
-## 7. Step 4: Deploy contracts to Base Sepolia
-
-### 7.1 Load contract env
+Deploy to Base Sepolia:
 
 ```bash
 cd contracts
+set -a
 source .env
+set +a
+
+forge script script/Deploy.s.sol:Deploy \
+  --rpc-url base_sepolia \
+  --broadcast \
+  -vvvv
 ```
 
-### 7.2 Deploy without verification
+Deploy and verify:
 
 ```bash
-forge script script/Deploy.s.sol:DeployScript \
-  --rpc-url "$RPC_URL" \
-  --broadcast
-```
-
-### 7.3 Deploy and verify
-
-```bash
-forge script script/Deploy.s.sol:DeployScript \
-  --rpc-url "$RPC_URL" \
+forge script script/Deploy.s.sol:Deploy \
+  --rpc-url base_sepolia \
   --broadcast \
   --verify \
-  --etherscan-api-key "$ETHERSCAN_API_KEY"
+  --verifier etherscan \
+  --verifier-url "https://api.etherscan.io/v2/api?chainid=84532" \
+  --etherscan-api-key "$BASESCAN_API_KEY" \
+  -vvvv
 ```
 
-### 7.4 Manual verification after deployment
+The deployment script performs these steps:
 
-If deployment succeeds but verification fails, verify each contract manually with `forge verify-contract` and the correct constructor arguments.
+1. Deploy `SignatureAirdrop` with owner and backend signer.
+2. Deploy demo ERC20 `AirdropToken`.
+3. Deploy demo ERC721 `AirdropNFT`.
+4. Mint `1_000_000 ether` of ERC20 rewards to the airdrop contract.
+5. Transfer NFT ownership to the airdrop contract so it can mint.
+6. Configure Round 1 ERC20 and Round 2 ERC721.
+7. Set `currentRound = 1`.
 
-## 8. Step 5: Sync deployed addresses
+## 7. Backend workflow
 
-### 8.1 Update the backend
-
-Set `AIRDROP_CONTRACT_ADDRESS` in `backend/.env` and in the Render service environment.
-
-### 8.2 Update the frontend
-
-Set `VITE_AIRDROP_CONTRACT_ADDRESS` in `frontend/.env.local` and in the Vercel project environment.
-
-### 8.3 Optional: update whitelist token fields
-
-If `backend/whitelist.json` stores reward token addresses or token identifiers, keep them in sync with deployed contract addresses.
-
-## 9. Step 6: Develop and run the backend
-
-### 9.1 Install dependencies
+Install and run locally:
 
 ```bash
 cd backend
-npm install
+npm ci
+npm run dev
 ```
 
-### 9.2 Whitelist format
+Default API base URL:
 
-`backend/whitelist.json` stores per-round entries. Each entry should include the user address, reward data, nonce, and claim metadata required by the signer service.
+```text
+http://localhost:4000/api
+```
 
-### 9.3 Start the dev server
+Build check:
 
 ```bash
-npm run start:dev
+cd backend
+npm run build
 ```
 
-### 9.4 Backend API
+### Backend API
 
-| Endpoint | Purpose |
+| Method | Path | Purpose |
+| --- | --- | --- |
+| `GET` | `/api/health` | Health, signer, chain ID, contract address |
+| `GET` | `/api/eligibility?address=0x...&round=1` | Eligibility and claimed state |
+| `POST` | `/api/sign` | Sign an eligible unclaimed claim |
+| `GET` | `/api/whitelist` | List all entries; optional `?round=1` |
+| `GET` | `/api/whitelist/:address` | List entries for one address; optional `?round=1` |
+| `POST` | `/api/whitelist` | Add/update a whitelist entry |
+| `POST` | `/api/whitelist/join` | Demo self-join endpoint used by the frontend |
+| `DELETE` | `/api/whitelist` | Remove an address from a round |
+
+Whitelist shape:
+
+```json
+{
+  "1": {
+    "tokenType": "ERC20",
+    "token": "0x...",
+    "recipients": {
+      "0xUser": "100000000000000000000"
+    }
+  },
+  "2": {
+    "tokenType": "ERC721",
+    "token": "0x...",
+    "recipients": {
+      "0xUser": "1"
+    }
+  }
+}
+```
+
+`WhitelistService` persists updates back to `backend/whitelist.json`. Existing entries get deterministic nonces from `round * 1_000_000 + index`; newly joined entries use the next available nonce for that round.
+
+## 8. Frontend workflow
+
+Install and run locally:
+
+```bash
+cd frontend
+npm ci
+npm run dev
+```
+
+Default Vite URL:
+
+```text
+http://localhost:5173
+```
+
+Build check:
+
+```bash
+cd frontend
+npm run build
+```
+
+Routes:
+
+| Route | Purpose |
 | --- | --- |
-| `GET /api/health` | Health check |
-| `GET /api/eligibility?address=<addr>&round=<round>` | Check whether an address is eligible |
-| `POST /api/sign` | Return a signature for an eligible claim |
+| `/` or `/#claim` | Claim panel |
+| `/#guide` | In-app guide rendered from `guild.md` / `guild.en.md` |
 
-### 9.5 Backend build check
+Claim flow:
 
-```bash
-npm run build
-```
+1. Connect wallet with RainbowKit.
+2. Select Round 1 ERC20 or Round 2 ERC721. The hook currently initializes to Round 2.
+3. Query eligibility from `${VITE_API_BASE_URL}/eligibility`.
+4. If not eligible, use the demo self-join button to call `/whitelist/join`, then re-query.
+5. If eligible and unclaimed, request a signature from `/sign`.
+6. Submit `claim(round, amountOrTokenId, nonce, signature)` with wagmi.
+7. Wait for the transaction receipt and display confirmation.
 
-## 10. Step 7: Develop and run the frontend
+## 9. Local end-to-end checklist
 
-### 10.1 Install dependencies
-
-```bash
-cd frontend
-npm install
-```
-
-### 10.2 Start the dev server
-
-```bash
-npm run dev
-```
-
-### 10.3 Frontend flow
-
-1. Open the Vite app.
-2. Connect a wallet on Base Sepolia.
-3. Select an airdrop round.
-4. Query eligibility.
-5. Request a backend signature.
-6. Submit the `claim()` transaction.
-7. Confirm the transaction and status in the UI.
-
-The app also includes a developer guide page at `/#guide` and a claim page at `/#claim`.
-
-### 10.4 Frontend build check
+1. Deploy or choose a real `SignatureAirdrop` address.
+2. Set `AIRDROP_CONTRACT_ADDRESS` in `backend/.env`.
+3. Set `VITE_AIRDROP_CONTRACT_ADDRESS` in `frontend/.env.local`.
+4. Confirm `SIGNER_PRIVATE_KEY` derives to the on-chain `signer()` address.
+5. Start backend: `cd backend && npm run dev`.
+6. Check health:
 
 ```bash
-npm run build
+curl http://localhost:4000/api/health
 ```
 
-## 11. Step 8: Local end-to-end integration
-
-### 11.1 Confirm contracts are deployed
-
-Use BaseScan or `cast` to confirm the deployed addresses and signer configuration.
-
-### 11.2 Start the backend
+7. Query eligibility:
 
 ```bash
-cd backend
-npm run start:dev
+curl "http://localhost:4000/api/eligibility?address=0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266&round=1"
 ```
 
-### 11.3 Check health
+8. Request a signature:
 
 ```bash
-curl http://localhost:3001/api/health
+curl -X POST http://localhost:4000/api/sign \
+  -H "Content-Type: application/json" \
+  -d '{"address":"0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266","round":1}'
 ```
 
-### 11.4 Query eligibility
+9. Start frontend and execute a browser claim on Base Sepolia.
+
+## 10. Render backend deployment
+
+`render.yaml` defines:
+
+| Setting | Value |
+| --- | --- |
+| Service name | `signature-airdrop-backend` |
+| Runtime | `node` |
+| Root directory | `backend` |
+| Region | `oregon` |
+| Build command | `npm ci && npm run build` |
+| Start command | `npm run start` |
+| Health check | `/api/health` |
+| Node version | `22` |
+| Port | `4000` |
+| Chain ID | `84532` |
+| RPC URL | `https://sepolia.base.org` |
+| Whitelist path | `./whitelist.json` |
+
+Set these in Render manually because they are secrets or deployment-specific:
+
+```text
+AIRDROP_CONTRACT_ADDRESS=0x...
+SIGNER_PRIVATE_KEY=0x...
+CORS_ORIGIN=https://your-vercel-domain.vercel.app,https://your-preview-domain.vercel.app
+```
+
+Post-deployment checks:
 
 ```bash
-curl "http://localhost:3001/api/eligibility?address=<wallet>&round=1"
+curl https://<render-service-domain>/api/health
+curl "https://<render-service-domain>/api/eligibility?address=<wallet>&round=1"
 ```
 
-### 11.5 Request a signature
+Use Render CLI for operational checks when available:
 
 ```bash
-curl -X POST http://localhost:3001/api/sign \
-  -H 'content-type: application/json' \
-  -d '{"address":"<wallet>","round":1}'
+render services
+render deploys list <service-id>
+render logs <service-id>
 ```
 
-### 11.6 Start the frontend and claim
+## 11. Vercel frontend deployment
+
+The repository root `vercel.json` is the source of truth:
+
+| Vercel setting | Value |
+| --- | --- |
+| Framework | `vite` |
+| Install command | `cd frontend && npm ci` |
+| Build command | `cd frontend && npm run build` |
+| Output directory | `frontend/dist` |
+| SPA rewrite | `/(.*)` -> `/index.html` |
+
+Set Vercel env variables:
+
+```text
+VITE_API_BASE_URL=https://<render-service-domain>/api
+VITE_AIRDROP_CONTRACT_ADDRESS=0x...
+VITE_WALLETCONNECT_PROJECT_ID=...
+```
+
+After deploy, open the Vercel URL, connect wallet, query eligibility, verify CORS to Render, and run one real claim on Base Sepolia if test funds are available.
+
+## 12. Operations
+
+Query signer:
 
 ```bash
-cd frontend
-npm run dev
+cast call <SIGNATURE_AIRDROP_ADDRESS> "signer()(address)" --rpc-url "$BASE_SEPOLIA_RPC_URL"
 ```
 
-Open the app, connect the same wallet, query eligibility, and claim.
-
-## 12. Step 9: Deploy backend to Render
-
-### 12.1 Render Blueprint deployment
-
-This repository includes `render.yaml`. Connect the GitHub repository to Render and create the service from the blueprint.
-
-### 12.2 Render environment variables
-
-Verify the Render environment includes the production values for:
+Query current round:
 
 ```bash
-CHAIN_ID
-RPC_URL
-AIRDROP_CONTRACT_ADDRESS
-SIGNER_PRIVATE_KEY
-CORS_ORIGIN
+cast call <SIGNATURE_AIRDROP_ADDRESS> "currentRound()(uint256)" --rpc-url "$BASE_SEPOLIA_RPC_URL"
 ```
 
-### 12.3 Post-deployment checks
+Query claimed state. Round 1 ERC20 uses token type `0`; Round 2 ERC721 uses token type `1`:
 
 ```bash
-curl https://<render-service-url>/api/health
-curl "https://<render-service-url>/api/eligibility?address=<wallet>&round=1"
+cast call <SIGNATURE_AIRDROP_ADDRESS> \
+  "claimed(uint256,uint8,address)(bool)" \
+  1 0 <USER_ADDRESS> \
+  --rpc-url "$BASE_SEPOLIA_RPC_URL"
 ```
 
-## 13. Step 10: Deploy frontend to Vercel
-
-### 13.1 Vercel project settings
-
-Set the frontend root directory to `frontend/` and use the default Vite build command:
+Pause and resume:
 
 ```bash
-npm run build
+cast send <SIGNATURE_AIRDROP_ADDRESS> "pause()" \
+  --private-key "$PRIVATE_KEY" \
+  --rpc-url "$BASE_SEPOLIA_RPC_URL"
+
+cast send <SIGNATURE_AIRDROP_ADDRESS> "unpause()" \
+  --private-key "$PRIVATE_KEY" \
+  --rpc-url "$BASE_SEPOLIA_RPC_URL"
 ```
 
-### 13.2 Vercel environment variables
+Rotate signer:
 
-Configure:
+1. Generate or choose a new backend signer key.
+2. Derive the new public address:
 
 ```bash
-VITE_CHAIN_ID=84532
-VITE_AIRDROP_CONTRACT_ADDRESS=<deployed-airdrop-contract>
-VITE_API_BASE_URL=<render-backend-url>
-VITE_WALLETCONNECT_PROJECT_ID=<walletconnect-project-id>
+cast wallet address --private-key "$NEW_SIGNER_PRIVATE_KEY"
 ```
 
-### 13.3 Frontend deployment checks
-
-Open the Vercel URL, connect a wallet, query eligibility, and verify that CORS requests to the backend succeed.
-
-## 14. Step 11: Common operations
-
-### 14.1 Query signer
+3. Update the contract signer:
 
 ```bash
-cast call <airdrop-contract> "signer()(address)" --rpc-url "$RPC_URL"
+cast send <SIGNATURE_AIRDROP_ADDRESS> \
+  "setSigner(address)" \
+  <NEW_SIGNER_ADDRESS> \
+  --private-key "$PRIVATE_KEY" \
+  --rpc-url "$BASE_SEPOLIA_RPC_URL"
 ```
 
-### 14.2 Query current round configuration
+4. Update `SIGNER_PRIVATE_KEY` in the backend environment.
+5. Restart/redeploy backend and check `/api/health`.
 
-Use the public getter exposed by the contract for the relevant round.
+## 13. Add a new round
 
-### 14.3 Query whether a user has claimed
+1. Configure the new round on-chain with `configureRound(uint256,address,uint8,bool,uint256)`.
+2. Add a matching round in `backend/whitelist.json`.
+3. Restart/redeploy backend so the whitelist reloads.
+4. Add the round option in `frontend/src/components/ClaimPanel.tsx`.
+5. Add i18n labels in `frontend/src/i18n.tsx`.
+6. Rebuild and run the full verification checklist.
 
-```bash
-cast call <airdrop-contract> "hasClaimed(uint256,address)(bool)" 1 <wallet> --rpc-url "$RPC_URL"
-```
+## 14. Troubleshooting
 
-### 14.4 Pause claims
+### Backend fails with `SIGNER_PRIVATE_KEY must be configured`
 
-```bash
-cast send <airdrop-contract> "pause()" --private-key "$PRIVATE_KEY" --rpc-url "$RPC_URL"
-```
+Set a real backend signer private key in `backend/.env` or Render. The placeholder zero key is intentionally rejected.
 
-### 14.5 Resume claims
+### `/api/sign` returns `AIRDROP_CONTRACT_ADDRESS is not configured`
 
-```bash
-cast send <airdrop-contract> "unpause()" --private-key "$PRIVATE_KEY" --rpc-url "$RPC_URL"
-```
+Set the deployed `SignatureAirdrop` address in the backend environment and restart/redeploy.
 
-### 14.6 Rotate backend signer
+### Frontend says the contract address is missing
 
-1. Generate or choose the new backend signer wallet.
-2. Update `SIGNER_PRIVATE_KEY` in the backend deployment environment.
-3. Call `setSigner(newSigner)` on the airdrop contract.
-4. Restart/redeploy the backend.
-5. Verify `/api/sign` returns signatures recoverable to the new signer.
+Set `VITE_AIRDROP_CONTRACT_ADDRESS` and rebuild/redeploy the frontend.
 
-## 15. Step 12: Add a new airdrop round
+### Browser CORS error
 
-### 15.1 Configure the round on-chain
+Append the current Vercel origin to backend `CORS_ORIGIN`. Multiple origins are comma-separated. Localhost and 127.0.0.1 are already accepted for development.
 
-Call the owner-only round configuration function with the new reward type, token address, and round parameters.
+### User is not eligible
 
-### 15.2 Update backend whitelist
+Check the selected round, wallet address, `backend/whitelist.json`, and whether the address already claimed. For demos, the user can use the self-join button and then re-query eligibility.
 
-Add the new round entries in `backend/whitelist.json` with correct addresses, reward data, and nonces.
+### Signature succeeds but claim fails
 
-### 15.3 Update frontend round selector
+Check, in order: frontend/backend contract address match, signer address equals contract `signer()`, wallet is on Base Sepolia, round is active, wallet has not claimed, ERC20 balance is sufficient, and NFT ownership was transferred to the airdrop contract.
 
-Add the new round option in `frontend/src/components/ClaimPanel.tsx` and verify the UI queries the correct round.
+## 15. Security notes
 
-## 16. Step 13: Verification checklist
+- Never commit `.env` files, private keys, or private RPC tokens.
+- Keep deployer/owner and backend signer as separate accounts outside throwaway demos.
+- Backend signer should not hold owner privileges in production.
+- Use `pause()` immediately if signer leakage or whitelist corruption is suspected.
+- Frontend `VITE_` variables are public; only put public addresses and URLs there.
+- Changing whitelist order changes deterministic nonces for existing entries; avoid reshuffling active campaign data.
 
-Before calling the project ready, verify:
+## 16. Verification status
 
-- `forge test` passes.
-- Backend `npm run build` passes.
-- Frontend `npm run build` passes.
-- `/api/health` returns healthy.
-- `/api/eligibility` returns expected whitelist state.
-- `/api/sign` returns a signature for eligible addresses only.
-- Frontend claim flow works on Base Sepolia.
-- The GitHub About link points to the Vercel deployment.
-- Render CORS allows the Vercel frontend URL.
+Fresh verification from the documentation sync:
 
-## 17. Troubleshooting
+| Area | Command | Result |
+| --- | --- | --- |
+| Contracts | `cd contracts && forge test -vv` | Passed: 7 tests, 0 failed |
+| Backend | `cd backend && npm run build` | Passed TypeScript compilation |
+| Frontend | `cd frontend && npm run build` | Passed Vite production build; Rollup emitted dependency annotation/chunk-size warnings |
 
-### 17.1 Backend reports `SIGNER_PRIVATE_KEY must be configured`
-
-Set `SIGNER_PRIVATE_KEY` in `backend/.env` locally or in the Render service environment. Never expose it in frontend variables.
-
-### 17.2 `/api/sign` returns `AIRDROP_CONTRACT_ADDRESS is not configured`
-
-Set `AIRDROP_CONTRACT_ADDRESS` to the deployed airdrop contract and restart the backend.
-
-### 17.3 Frontend reports missing contract address
-
-Set `VITE_AIRDROP_CONTRACT_ADDRESS` in `frontend/.env.local` or Vercel environment variables, then rebuild.
-
-### 17.4 Browser CORS error
-
-Add the frontend origin to backend `CORS_ORIGIN`. Include both local and deployed frontend URLs when needed.
-
-### 17.5 User is not eligible
-
-Check `backend/whitelist.json`, address casing/normalization, selected round, and whether the user already claimed.
-
-### 17.6 Signature succeeds but claim fails
-
-Check chain ID, contract address, round, nonce, reward amount/token ID, signer address, and whether the wallet is connected to Base Sepolia.
-
-### 17.7 Contract verification fails
-
-Verify the compiler version, constructor arguments, optimizer settings, and selected chain in the verification command.
-
-## 18. Security notes
-
-- Never commit private keys or `.env` files.
-- Keep signer rotation documented and tested.
-- Bind signatures to recipient, round, contract address, and chain ID.
-- Use `nonce` and `hasClaimed` to prevent replay.
-- Keep CORS as narrow as possible for production.
-- Use testnet keys and test assets for demos.
-
-## 19. Recommended development order
-
-1. Compile and test contracts locally.
-2. Deploy contracts to Base Sepolia.
-3. Sync deployed addresses into backend and frontend env files.
-4. Run backend locally and verify API endpoints.
-5. Run frontend locally and execute an end-to-end claim.
-6. Deploy backend to Render.
-7. Deploy frontend to Vercel.
-8. Update GitHub About with the Vercel URL.
-9. Re-run the public deployment verification checklist.
-
-## 20. Current repository verification status
-
-The repository currently tracks:
-
-- A Render backend deployment blueprint in `render.yaml`.
-- Vercel frontend project metadata under `frontend/.vercel/` locally, ignored from Git.
-- A deployed frontend URL: `https://frontend-coral-eta-75.vercel.app`.
-- GitHub repository metadata pointing to the Vercel frontend URL.
-- A frontend developer guide page at `/#guide` that supports Chinese and English through the app language toggle.
+Before every public release, also verify deployed Render health, Render logs/deploy state, Vercel deployment status, browser CORS, and one real wallet claim on Base Sepolia.
