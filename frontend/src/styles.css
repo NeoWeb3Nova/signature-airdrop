@@ -6,6 +6,10 @@ main { width: min(1120px, calc(100% - 32px)); margin: 0 auto; padding: 24px 0 36
 .brand { display:flex; align-items:center; gap:14px; }
 .brand span { display:block; color:#4b4b58; font-size:13px; margin-top:2px; }
 .header-actions { display:flex; align-items:center; gap:14px; flex-wrap:wrap; justify-content:flex-end; }
+.app-nav { display:flex; gap:0; border:3px solid #16161d; background:#fff; box-shadow:4px 4px 0 #16161d; }
+.app-nav a { color:#16161d; text-decoration:none; padding:9px 14px; font-size:13px; font-weight:900; }
+.app-nav a + a { border-left:3px solid #16161d; }
+.app-nav a[aria-current="page"] { background:#2ec5ff; }
 .language-toggle { display:flex; gap:0; border:3px solid #16161d; background:#fff; box-shadow:4px 4px 0 #16161d; }
 .language-toggle button { width:auto; border:0; box-shadow:none; padding:9px 12px; font-size:13px; }
 .language-toggle button + button { border-left:3px solid #16161d; }
@@ -32,5 +36,29 @@ button.primary { background:#ffef5a; }
 .tx, .success, .error { grid-column:2; padding:14px 18px; margin:0; word-break:break-all; }
 .success { background:#b6ff7d; }
 .error { background:#ffb1bd; }
+.guide-page { display:grid; gap:24px; }
+.guide-hero, .guide-document { border:4px solid #16161d; box-shadow:8px 8px 0 #16161d; background:#fffdf4; }
+.guide-hero { padding:34px; background:linear-gradient(135deg, #fffdf4 0 55%, #ffef5a 55% 100%); }
+.guide-kicker { display:inline-block; margin-bottom:12px; border:3px solid #16161d; background:#2ec5ff; padding:6px 10px; font-size:12px; font-weight:950; letter-spacing:.12em; text-transform:uppercase; box-shadow:4px 4px 0 #16161d; }
+.guide-hero h1 { max-width:920px; font-size:clamp(34px, 5vw, 60px); line-height:.98; }
+.guide-hero p { max-width:780px; font-weight:700; }
+.guide-document { padding:30px; overflow:hidden; }
+.guide-document h2, .guide-document h3, .guide-document h4, .guide-document h5 { scroll-margin-top:18px; letter-spacing:-.04em; color:#16161d; }
+.guide-document h2 { margin:32px 0 14px; border-top:4px solid #16161d; padding-top:22px; font-size:32px; }
+.guide-document h2:first-child { margin-top:0; border-top:0; padding-top:0; }
+.guide-document h3 { margin:26px 0 12px; font-size:24px; }
+.guide-document h4, .guide-document h5 { margin:22px 0 10px; font-size:20px; }
+.guide-document p, .guide-document li { color:#383844; font-size:16px; line-height:1.75; }
+.guide-document blockquote { margin:18px 0; border-left:7px solid #ff3b86; background:#fff4c4; padding:14px 18px; font-weight:800; }
+.guide-document code { border:2px solid #16161d; background:#f2f4ff; padding:1px 5px; font-size:.92em; font-weight:800; }
+.guide-code { position:relative; margin:18px 0; border:3px solid #16161d; background:#101014; color:#f8f8f2; padding:18px; overflow:auto; box-shadow:5px 5px 0 #2ec5ff; }
+.guide-code code { display:block; border:0; background:transparent; color:inherit; padding:0; font-weight:600; font-size:13px; line-height:1.65; white-space:pre; }
+.guide-code-language { display:inline-block; margin-bottom:12px; color:#ffef5a; font-size:11px; font-weight:900; letter-spacing:.12em; text-transform:uppercase; }
+.guide-document ul, .guide-document ol { padding-left:24px; }
+.guide-table-wrap { margin:18px 0; overflow:auto; border:3px solid #16161d; box-shadow:5px 5px 0 #16161d; }
+.guide-document table { width:100%; border-collapse:collapse; background:#fff; min-width:720px; }
+.guide-document th, .guide-document td { border:2px solid #16161d; padding:12px 14px; text-align:left; vertical-align:top; }
+.guide-document th { background:#ffef5a; font-size:13px; text-transform:uppercase; letter-spacing:.06em; }
+.guide-document td { color:#383844; line-height:1.55; }
 footer { text-align:center; margin-top:42px; font-size:13px; font-weight:800; color:#4b4b58; }
-@media (max-width: 860px) { .panel { grid-template-columns:1fr; } .tx,.success,.error { grid-column:1; } .header { flex-direction:column; align-items:flex-start; } .header-actions { justify-content:flex-start; } }
+@media (max-width: 860px) { .panel { grid-template-columns:1fr; } .tx,.success,.error { grid-column:1; } .header { flex-direction:column; align-items:flex-start; } .header-actions { justify-content:flex-start; } .guide-document, .guide-hero { padding:22px; } .guide-document table { min-width:620px; } }

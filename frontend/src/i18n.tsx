@@ -16,6 +16,9 @@ const translations = {
   en: {
     appName: 'Signature Drop',
     appSubtitle: 'Base Sepolia · Nouns style',
+    navigationLabel: 'Primary navigation',
+    claimNav: 'Claim',
+    guideNav: 'Dev Guide',
     languageLabel: 'Language',
     english: 'English',
     chinese: '中文',
@@ -48,6 +51,9 @@ const translations = {
   zh: {
     appName: '签名空投',
     appSubtitle: 'Base Sepolia · Nouns 风格',
+    navigationLabel: '主导航',
+    claimNav: '领取',
+    guideNav: '开发指南',
     languageLabel: '语言',
     english: 'English',
     chinese: '中文',
