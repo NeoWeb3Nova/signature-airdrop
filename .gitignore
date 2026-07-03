@@ -25,6 +25,7 @@ pnpm-debug.log*
 Thumbs.db
 .vscode/
 .idea/
+.vercel/
 *.swp
 *.swo
 
@@ -56,3 +57,4 @@ contracts/.env
 contracts/.env.*
 !contracts/.env.example
 !contracts/.env.*.example
+.vercel

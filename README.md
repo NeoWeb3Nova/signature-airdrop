@@ -134,6 +134,20 @@ Default local URLs:
 - Frontend: http://localhost:5173
 - Backend: http://localhost:4000/api
 
+## Vercel frontend deployment
+
+This repository is a monorepo, and the Vite app lives in `frontend/`. The root
+`vercel.json` configures the Vercel web service to use that subdirectory:
+
+```bash
+npm ci
+npm run build
+```
+
+Vercel runs those commands with `frontend/` as the service root and publishes
+`frontend/dist`. If the Vercel dashboard has an old manual Build Command such as
+`vite build`, clear it so it does not bypass the repo config.
+
 If Vite starts on another local port such as `5174`, the backend accepts that
 local dev origin automatically. Add non-local browser origins to `CORS_ORIGIN`
 as a comma-separated list.
