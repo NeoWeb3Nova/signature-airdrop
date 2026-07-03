@@ -10,6 +10,8 @@ main { width: min(1120px, calc(100% - 32px)); margin: 0 auto; padding: 24px 0 36
 .app-nav a { color:#16161d; text-decoration:none; padding:9px 14px; font-size:13px; font-weight:900; }
 .app-nav a + a { border-left:3px solid #16161d; }
 .app-nav a[aria-current="page"] { background:#2ec5ff; }
+.github-link { display:inline-flex; align-items:center; min-height:43px; border:3px solid #16161d; background:#16161d; color:#fff; padding:0 14px; font-size:13px; font-weight:950; text-decoration:none; box-shadow:4px 4px 0 #ff3b86; }
+.github-link:hover { transform:translate(2px,2px); box-shadow:2px 2px 0 #ff3b86; }
 .language-toggle { display:flex; gap:0; border:3px solid #16161d; background:#fff; box-shadow:4px 4px 0 #16161d; }
 .language-toggle button { width:auto; border:0; box-shadow:none; padding:9px 12px; font-size:13px; }
 .language-toggle button + button { border-left:3px solid #16161d; }
