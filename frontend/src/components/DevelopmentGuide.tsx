@@ -1,5 +1,9 @@
 import guideMarkdown from '../../../guild.md?raw';
+import guideMarkdownEn from '../../../guild.en.md?raw';
 import { useMemo } from 'react';
+import { useLanguage } from '../i18n';
+
+const GITHUB_REPO_URL = 'https://github.com/NeoWeb3Nova/signature-airdrop';
 
 const headingAnchor = (text: string) => text
   .toLowerCase()
@@ -8,14 +12,19 @@ const headingAnchor = (text: string) => text
   .replace(/^-+|-+$/g, '');
 
 export function DevelopmentGuide() {
-  const blocks = useMemo(() => parseMarkdown(guideMarkdown), []);
+  const { language, t } = useLanguage();
+  const markdown = language === 'zh' ? guideMarkdown : guideMarkdownEn;
+  const blocks = useMemo(() => parseMarkdown(markdown), [markdown]);
 
   return (
     <section className="guide-page" aria-labelledby="guide-title">
       <div className="guide-hero">
-        <span className="guide-kicker">Developer Guide</span>
-        <h1 id="guide-title">Signature Airdrop 项目开发与部署指南</h1>
-        <p>从项目结构、安全模型、合约部署、后端签名服务到前端上线，把 guild.md 转化为可浏览的开发文档页面。</p>
+        <span className="guide-kicker">{t('guideKicker')}</span>
+        <h1 id="guide-title">{t('guideTitle')}</h1>
+        <p>{t('guideDescription')}</p>
+        <a className="guide-github-link" href={GITHUB_REPO_URL} target="_blank" rel="noreferrer">
+          {t('githubProjectLink')}
+        </a>
       </div>
       <article className="guide-document">
         {blocks.map((block, index) => renderBlock(block, index))}
